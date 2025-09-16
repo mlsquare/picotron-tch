@@ -9,7 +9,7 @@ crate-type = ["rlib", "cdylib"]
 
 # PyTorch bindings
 [dependencies]
-tch = "0.13"
+tch = "0.20"
 
 # Serialization and configuration
 serde = { version = "1.0", features = ["derive"] }

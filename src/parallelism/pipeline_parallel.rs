@@ -34,7 +34,7 @@ impl PipelineParallel {
     }
     
     /// Send tensor to next stage
-    pub fn send_to_next(&self, tensor: &Tensor) -> Result<()> {
+    pub fn send_to_next(&self, _tensor: &Tensor) -> Result<()> {
         // In a real implementation, this would send tensor to next pipeline stage
         // For now, just log the operation
         info!("Sending tensor to next stage (rank {})", self.rank + 1);

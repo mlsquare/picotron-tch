@@ -1,7 +1,6 @@
 //! Utility functions for PicoTron Tch
 
 use tch::{Device, Tensor, Kind};
-use anyhow::Result;
 use log::info;
 
 /// Utility functions for PicoTron Tch

@@ -107,10 +107,15 @@ impl PicoTronModel {
         &self.vs
     }
     
+    /// Get mutable variable store
+    pub fn var_store_mut(&mut self) -> &mut nn::VarStore {
+        &mut self.vs
+    }
+    
     /// Forward pass
     pub fn forward(&self, input_ids: &Tensor, attention_mask: Option<&Tensor>) -> Result<Tensor> {
-        let batch_size = input_ids.size()[0];
-        let seq_len = input_ids.size()[1];
+        let _batch_size = input_ids.size()[0];
+        let _seq_len = input_ids.size()[1];
         
         // Embeddings
         let mut hidden_states = self.embeddings.forward(input_ids);
@@ -134,23 +139,23 @@ impl PicoTronModel {
     
     /// Get number of parameters
     pub fn num_parameters(&self) -> i64 {
-        self.vs.variables().values().map(|v| v.numel()).sum()
+        self.vs.variables().values().map(|v| v.numel() as i64).sum()
     }
 }
 
 impl TransformerLayer {
     fn new(p: &nn::Path, config: &ModelConfig) -> Result<Self> {
-        let self_attn = MultiHeadAttention::new(&p / "self_attn", config)?;
-        let mlp = MLP::new(&p / "mlp", config)?;
+        let self_attn = MultiHeadAttention::new(&(p / "self_attn"), config)?;
+        let mlp = MLP::new(&(p / "mlp"), config)?;
         
         let input_layernorm = nn::layer_norm(
-            &p / "input_layernorm",
+            p / "input_layernorm",
             vec![config.hidden_size as i64],
             Default::default(),
         );
         
         let post_attention_layernorm = nn::layer_norm(
-            &p / "post_attention_layernorm",
+            p / "post_attention_layernorm",
             vec![config.hidden_size as i64],
             Default::default(),
         );
@@ -185,28 +190,28 @@ impl MultiHeadAttention {
         let head_dim = config.hidden_size / config.num_attention_heads;
         
         let q_proj = nn::linear(
-            &p / "q_proj",
+            p / "q_proj",
             config.hidden_size as i64,
             config.hidden_size as i64,
             Default::default(),
         );
         
         let k_proj = nn::linear(
-            &p / "k_proj",
+            p / "k_proj",
             config.hidden_size as i64,
             config.hidden_size as i64,
             Default::default(),
         );
         
         let v_proj = nn::linear(
-            &p / "v_proj",
+            p / "v_proj",
             config.hidden_size as i64,
             config.hidden_size as i64,
             Default::default(),
         );
         
         let out_proj = nn::linear(
-            &p / "o_proj",
+            p / "o_proj",
             config.hidden_size as i64,
             config.hidden_size as i64,
             Default::default(),
@@ -233,11 +238,11 @@ impl MultiHeadAttention {
         let value = self.v_proj.forward(hidden_states);
         
         // Reshape for multi-head attention
-        let query = query.view(&[batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
+        let query = query.view([batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
             .transpose(1, 2);
-        let key = key.view(&[batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
+        let key = key.view([batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
             .transpose(1, 2);
-        let value = value.view(&[batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
+        let value = value.view([batch_size, seq_len, self.num_heads as i64, self.head_dim as i64])
             .transpose(1, 2);
         
         // Scaled dot-product attention
@@ -260,7 +265,7 @@ impl MultiHeadAttention {
         
         // Reshape and project
         let context = context.transpose(1, 2).contiguous()
-            .view(&[batch_size, seq_len, (self.num_heads * self.head_dim) as i64]);
+            .view([batch_size, seq_len, (self.num_heads * self.head_dim) as i64]);
         
         let output = self.out_proj.forward(&context);
         
@@ -271,21 +276,21 @@ impl MultiHeadAttention {
 impl MLP {
     fn new(p: &nn::Path, config: &ModelConfig) -> Result<Self> {
         let gate_proj = nn::linear(
-            &p / "gate_proj",
+            p / "gate_proj",
             config.hidden_size as i64,
             config.intermediate_size as i64,
             Default::default(),
         );
         
         let up_proj = nn::linear(
-            &p / "up_proj",
+            p / "up_proj",
             config.hidden_size as i64,
             config.intermediate_size as i64,
             Default::default(),
         );
         
         let down_proj = nn::linear(
-            &p / "down_proj",
+            p / "down_proj",
             config.intermediate_size as i64,
             config.hidden_size as i64,
             Default::default(),

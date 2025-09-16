@@ -1,7 +1,7 @@
 //! Basic PicoTron Tch example
 
 use picotron_tch::*;
-use tch::{Device, Tensor, Kind};
+use tch::Device;
 use anyhow::Result;
 
 fn main() -> Result<()> {

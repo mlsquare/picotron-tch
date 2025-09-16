@@ -1,10 +1,10 @@
 //! Training loop for PicoTron Tch
 
-use tch::{nn, Device, Tensor, Kind};
+use tch::{nn, nn::OptimizerConfig, Device, Tensor, Kind};
 use crate::config::TrainingConfig;
 use crate::model::PicoTronModel;
 use anyhow::Result;
-use log::{info, warn};
+use log::info;
 
 /// PicoTron trainer using Tch
 pub struct PicoTronTrainer {
@@ -23,10 +23,9 @@ impl PicoTronTrainer {
         
         // Create optimizer
         let optimizer = nn::Adam::default()
-            .lr(config.learning_rate)
-            .betas(&[config.adam_beta1, config.adam_beta2])
+            .beta1(config.adam_beta1)
+            .beta2(config.adam_beta2)
             .eps(config.adam_epsilon)
-            .weight_decay(config.weight_decay)
             .build(vs, config.learning_rate)?;
         
         Ok(Self {
@@ -56,7 +55,16 @@ impl PicoTronTrainer {
             // Cross-entropy loss for language modeling
             let shift_logits = logits.narrow(1, 0, logits.size()[1] - 1);
             let shift_labels = labels.narrow(1, 1, labels.size()[1] - 1);
-            shift_logits.cross_entropy_for_logits(&shift_labels)
+            
+            // Reshape logits and labels for cross-entropy loss
+            let batch_size = shift_logits.size()[0];
+            let seq_len = shift_logits.size()[1];
+            let vocab_size = shift_logits.size()[2];
+            
+            let flat_logits = shift_logits.reshape([batch_size * seq_len, vocab_size]);
+            let flat_labels = shift_labels.reshape([batch_size * seq_len]);
+            
+            flat_logits.cross_entropy_for_logits(&flat_labels)
         } else {
             // If no labels, return dummy loss
             Tensor::zeros(&[], (Kind::Float, self.device))
@@ -68,7 +76,7 @@ impl PicoTronTrainer {
         
         // Gradient clipping
         if self.config.max_grad_norm > 0.0 {
-            nn::clip_grad_norm(&self.optimizer, self.config.max_grad_norm);
+            self.optimizer.clip_grad_norm(self.config.max_grad_norm);
         }
         
         // Optimizer step
@@ -86,7 +94,16 @@ impl PicoTronTrainer {
         let loss = if let Some(labels) = labels {
             let shift_logits = logits.narrow(1, 0, logits.size()[1] - 1);
             let shift_labels = labels.narrow(1, 1, labels.size()[1] - 1);
-            shift_logits.cross_entropy_for_logits(&shift_labels)
+            
+            // Reshape logits and labels for cross-entropy loss
+            let batch_size = shift_logits.size()[0];
+            let seq_len = shift_logits.size()[1];
+            let vocab_size = shift_logits.size()[2];
+            
+            let flat_logits = shift_logits.reshape([batch_size * seq_len, vocab_size]);
+            let flat_labels = shift_labels.reshape([batch_size * seq_len]);
+            
+            flat_logits.cross_entropy_for_logits(&flat_labels)
         } else {
             Tensor::zeros(&[], (Kind::Float, self.device))
         };
@@ -102,9 +119,9 @@ impl PicoTronTrainer {
     }
     
     /// Load model checkpoint
-    pub fn load_checkpoint(&self, model: &PicoTronModel, path: &str) -> Result<()> {
+    pub fn load_checkpoint(&mut self, model: &mut PicoTronModel, path: &str) -> Result<()> {
         info!("Loading checkpoint from: {}", path);
-        model.var_store().load(path)?;
+        model.var_store_mut().load(path)?;
         Ok(())
     }
 }

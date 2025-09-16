@@ -48,7 +48,7 @@ impl DataParallel {
     }
     
     /// Broadcast operation
-    pub fn broadcast(&self, tensor: &Tensor, root: usize) -> Result<Tensor> {
+    pub fn broadcast(&self, tensor: &Tensor, _root: usize) -> Result<Tensor> {
         // In a real implementation, this would broadcast from root rank
         // For now, just return the tensor as-is
         Ok(tensor.shallow_clone())
