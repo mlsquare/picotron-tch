@@ -1,0 +1,39 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Python cache (for Tch version)
+__pycache__/
+*.pyc
+*.pyo
+
+# Configuration files (optional)
+config.json
+*.toml.local
+
+# Test outputs
+test_outputs/
+benchmark_results/
+
+# PyTorch specific
+*.pth
+*.pt
+*.pkl
